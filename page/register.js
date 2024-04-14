@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { supabase } from '../supabase'; // 根据你的实际路径进行调整
+import { supabase } from '../supabase'; // Adjust according to your actual path
 import './register.css';
 
-function Register({ setPage }) {
-  const [name, setUsername] = useState(''); // 将注册的用户名作为独立的状态
-  const [pin, setPassword] = useState('');
-  const [email, setEmail] = useState('');
-  const [scope, setPermission] = useState('');
+function Register() {
+  const [Name, setUsername] = useState(''); // Set the registered username as an independent state
+  const [Pin, setPassword] = useState('');
+  const [Email, setEmail] = useState('');
+  const [Weight, setWeight] = useState('');
+  const [Scope, setPermission] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [owner, setOwner] = useState(false); // 添加 owner 状态
+  const [owner, setOwner] = useState(false); // Add owner state
   const [loginData, setLoginData] = useState([]);
   const [showRegisterPopup, setShowRegisterPopup] = useState(false);
   const [showConfirmationPopup, setShowConfirmationPopup] = useState(false);
@@ -16,29 +17,28 @@ function Register({ setPage }) {
   const [editingUser, setEditingUser] = useState('');
   const [showEditPopup, setShowEditPopup] = useState(false);
   const [editName, setEditName] = useState('');
-  const [editPin, setEditPin] = useState('');
   const [editEmail, setEditEmail] = useState('');
-  const [editScope, setEditPermission] = useState('');
-
-  // 提升 checkPermission 函数的定义
-  const checkPermission = async (name) => { // 接受用户名作为参数
+  const [editWeight, setEditWeight] = useState('');
+ 
+  // Promote the definition of the checkPermission function
+  const checkPermission = async (name) => { // Accept username as a parameter
     try {
-      // 查询所有用户的登录数据
+      // Query all user login data
       const { data: allLoginData, error } = await supabase
-        .from('login')
+        .from('Employee')
         .select('*');
 
       if (error) {
         throw error;
       }
 
-      // 存储用户的权限信息
-      const login = allLoginData.find(user => user.name === name); // 查找当前登录用户的信息
-      if (login && login.scope) {
-        setPermission(login.scope);
+      // Store user permission information
+      const login = allLoginData.find(user => user.Name === name); // Find information of the currently logged-in user
+      if (login && login.Scope) {
+        setPermission(login.Scope);
 
-        if (login.scope !== 'owner') {
-          // 如果用户权限不是 owner，则重定向到其他页面或者显示相应的提示信息
+        if (login.Scope !== 'owner') {
+          // If the user's permission is not owner, redirect to another page or display the appropriate message
           console.log('Permission denied. Redirecting...');
           setOwner(false);
         } else {
@@ -50,7 +50,7 @@ function Register({ setPage }) {
         setOwner(false);
       }
 
-      // 将所有登录数据设置到状态中
+      // Set all login data to the state
       setLoginData(allLoginData);
     } catch (error) {
       console.error('Error checking permission:', error.message);
@@ -58,33 +58,39 @@ function Register({ setPage }) {
   };
 
   useEffect(() => {
-    let mounted = true; // 设置一个标志来跟踪组件是否已经卸载
+    let mounted = true; // Set a flag to track whether the component is unmounted
 
     const usernameFromLocal = localStorage.getItem('username');
     if (usernameFromLocal) {
-      checkPermission(usernameFromLocal); // 使用当前登录用户名来检查权限
+      checkPermission(usernameFromLocal); // Check permissions using the current logged-in username
     }
 
-    // 组件卸载时执行清理逻辑
+    // Clean-up logic when the component unmounts
     return () => {
       mounted = false;
     };
-  }, [name]); // 使用 name 作为依赖项
+  }, [Name]); // Use name as a dependency
 
   const handleRegister = async (event) => {
     event.preventDefault();
 
     try {
-      // 检查用户名和密码是否为空
-      if (!name || !pin) {
+      // Check if username and password are empty
+      if (!Name || !Pin) {
         throw new Error('Username and password are required.');
       }
+      if (!Email) {
+        throw new Error('Email address cannot be empty.');
+      }
+      if (!Weight) {
+        throw new Error('Missing weight information.');
+      }
 
-      // 在Supabase中插入注册信息到login表
+      // Insert registration information into the login table in Supabase
       const { data, error } = await supabase
-        .from('login')
+        .from('Employee')
         .insert([
-          { name, pin, email}
+          { Name, Pin, Email, Weight}
         ])
         .select();
 
@@ -94,18 +100,19 @@ function Register({ setPage }) {
 
       console.log('Account registered successfully:', data);
 
-      // 清空表单
+      // Clear the form
       setUsername('');
       setPassword('');
       setEmail('');
+      setWeight('');
       setPermission('');
       setErrorMessage('');
-      // 关闭注册浮窗
+      // Close the registration popup
       setShowRegisterPopup(false);
 
       window.location.reload();
     } catch (error) {
-      // 处理错误
+      // Handle errors
       console.error('Error registering account:', error.message);
       setErrorMessage(error.message);
     }
@@ -113,11 +120,11 @@ function Register({ setPage }) {
 
   const handleDelete = async () => {
     try {
-      // 在Supabase中删除指定用户名的数据
+      // Delete data for the specified username in Supabase
       const { data, error } = await supabase
-        .from('login')
+        .from('Employee')
         .delete()
-        .eq('name', deletingUser);
+        .eq('Name', deletingUser);
 
       if (error) {
         throw error;
@@ -125,12 +132,12 @@ function Register({ setPage }) {
 
       console.log('Account deleted successfully:', data);
 
-      // 关闭确认浮窗
+      // Close the confirmation popup
       setShowConfirmationPopup(false);
 
-      // 刷新数据
+      // Refresh data
       const { data: refreshedData, error: refreshError } = await supabase
-        .from('login')
+        .from('Employee')
         .select('*');
 
       if (refreshError) {
@@ -148,11 +155,11 @@ function Register({ setPage }) {
     event.preventDefault();
 
     try {
-      // 在Supabase中更新指定用户名的数据
+      // Update data for the specified username in Supabase
       const { data, error } = await supabase
-        .from('login')
-        .update({ name: editName, email: editEmail})
-        .eq('name', editingUser);
+        .from('Employee')
+        .update({ Name: editName, Email: editEmail, Weight:editWeight})
+        .eq('Name', editingUser);
 
       if (error) {
         throw error;
@@ -160,12 +167,12 @@ function Register({ setPage }) {
 
       console.log('Account updated successfully:', data);
 
-      // 关闭编辑浮窗
+      // Close the edit popup
       setShowEditPopup(false);
 
-      // 刷新数据
+      // Refresh data
       const { data: refreshedData, error: refreshError } = await supabase
-        .from('login')
+        .from('Employee')
         .select('*');
 
       if (refreshError) {
@@ -182,12 +189,11 @@ function Register({ setPage }) {
   return (
     <div className="register-container">
       <h2>User Management</h2>
-      {owner && ( // 只有 owner 为 true 时才显示用户管理表格
+      {owner && ( // Display user management table only when owner is true
         <table className="login-table">
           <thead>
             <tr>
               <th>Username</th>
-              <th>Password</th>
               <th>Email</th>
               <th>Scope</th>
               <th>Edit</th>
@@ -195,24 +201,23 @@ function Register({ setPage }) {
             </tr>
           </thead>
           <tbody>
-            {loginData.map((login, index) => (
+            {loginData.map((Employee, index) => (
               <tr key={index}>
-                <td>{login.name}</td>
-                <td>{login.pin}</td>
-                <td>{login.email}</td>
-                <td>{login.scope}</td>
+                <td>{Employee.Name}</td>
+                <td>{Employee.Email}</td>
+                <td>{Employee.Scope}</td>
                 <td>
                   <button className="edit-button" onClick={() => {
-                    setEditingUser(login.name);
-                    setEditName(login.name);
-                    setEditEmail(login.email);
-                    setEditPermission(login.scope);
+                    setEditingUser(Employee.Name);
+                    setEditName(Employee.Name);
+                    setEditEmail(Employee.Email);
+                    setEditWeight(Employee.Weight);
                     setShowEditPopup(true);
                   }}>Edit</button>
                 </td>
                 <td>
                   <button className="delete-button" onClick={() => {
-                    setDeletingUser(login.name);
+                    setDeletingUser(Employee.Name);
                     setShowConfirmationPopup(true);
                   }}>Delete</button>
                 </td>
@@ -221,10 +226,7 @@ function Register({ setPage }) {
           </tbody>
         </table>
       )}
-      {!owner && (
-        <p style={{ fontSize: '26px' }}>This account does not have management permissions.</p>
-      )}
-      {owner && ( // 只有 owner 为 true 时才显示注册按钮
+      {owner && ( // Display register button only when owner is true
         <button className="register-button" onClick={() => setShowRegisterPopup(true)}>Register</button>
       )}
       {showRegisterPopup && (
@@ -237,21 +239,28 @@ function Register({ setPage }) {
               <input
                 type="text"
                 id="username"
-                value={name}
+                value={Name}
                 onChange={(e) => setUsername(e.target.value)}
               />
               <label htmlFor="password">Password:</label>
               <input
                 type="password"
                 id="password"
-                value={pin}
+                value={Pin}
                 onChange={(e) => setPassword(e.target.value)}
+              />
+              <label htmlFor="Weight">Weight:</label>
+              <input
+                type="Weight"
+                id="Weight"
+                value={Weight}
+                onChange={(e) => setWeight(e.target.value)}
               />
               <label htmlFor="email">Email:</label>
               <input
                 type="email"
                 id="email"
-                value={email}
+                value={Email}
                 onChange={(e) => setEmail(e.target.value)}
               />
               {errorMessage && <div className="error-message">{errorMessage}</div>}
@@ -279,6 +288,13 @@ function Register({ setPage }) {
                 id="edit-email"
                 value={editEmail}
                 onChange={(e) => setEditEmail(e.target.value)}
+              />
+              <label htmlFor="edit-Weight">Weight:</label>
+              <input
+                type="text"
+                id="edit-Weight"
+                value={editWeight}
+                onChange={(e) => setEditWeight(e.target.value)}
               />
               {errorMessage && <div className="error-message">{errorMessage}</div>}
               <div className="button-group">
